@@ -16,7 +16,7 @@
   <widget class="QPushButton" name="btnSelectFolder">
    <property name="geometry">
     <rect>
-     <x>60</x>
+     <x>220</x>
      <y>20</y>
      <width>201</width>
      <height>41</height>
@@ -31,12 +31,15 @@
     <rect>
      <x>30</x>
      <y>80</y>
-     <width>261</width>
+     <width>581</width>
      <height>371</height>
     </rect>
    </property>
    <property name="rootIsDecorated">
     <bool>true</bool>
+   </property>
+   <property name="columnCount">
+    <number>0</number>
    </property>
    <attribute name="headerVisible">
     <bool>true</bool>
