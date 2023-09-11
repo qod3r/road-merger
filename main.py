@@ -34,34 +34,35 @@ class MainWidget(QWidget):
         anchor_dir_idx = None
         anchor_dir_tree = None
         for i, element in enumerate(path.iterdir()):
-            if element.is_dir():
-                # начальный случай
-                if i == 0:
-                    anchor_dir_name = element.name
-                    anchor_dir_idx = i
-                    anchor_dir_tree = QTreeWidgetItem(
-                        tree, [folder_to_root_name(element.name)]
-                    )
-                    QTreeWidgetItem(anchor_dir_tree, [element.name])
-                    self.street_dirs.append([element])
-                    continue
-                # n-ая часть улицы (очень наивно)
-                if any(
-                    # 💀
-                    x in [anchor_dir_name, anchor_dir_name[:-1], anchor_dir_name[:-2]]
-                    for x in [element.name[:-2], element.name[:-1]]
-                ):
-                    QTreeWidgetItem(anchor_dir_tree, [element.name])
-                    self.street_dirs[anchor_dir_idx].append(element)
-                # 1-ая часть улицы
-                else:
-                    anchor_dir_name = element.name
-                    anchor_dir_idx += 1
-                    anchor_dir_tree = QTreeWidgetItem(
-                        tree, [folder_to_root_name(element.name)]
-                    )
-                    QTreeWidgetItem(anchor_dir_tree, [element.name])
-                    self.street_dirs.append([element])
+            if not element.is_dir():
+                continue
+            # начальный случай
+            if i == 0:
+                anchor_dir_name = element.name
+                anchor_dir_idx = i
+                anchor_dir_tree = QTreeWidgetItem(
+                    tree, [folder_to_root_name(element.name)]
+                )
+                QTreeWidgetItem(anchor_dir_tree, [element.name])
+                self.street_dirs.append([element])
+                continue
+            # n-ая часть улицы (очень наивно)
+            if any(
+                # 💀
+                x in [anchor_dir_name, anchor_dir_name[:-1], anchor_dir_name[:-2]]
+                for x in [element.name[:-2], element.name[:-1]]
+            ):
+                QTreeWidgetItem(anchor_dir_tree, [element.name])
+                self.street_dirs[anchor_dir_idx].append(element)
+            # 1-ая часть улицы
+            else:
+                anchor_dir_name = element.name
+                anchor_dir_idx += 1
+                anchor_dir_tree = QTreeWidgetItem(
+                    tree, [folder_to_root_name(element.name)]
+                )
+                QTreeWidgetItem(anchor_dir_tree, [element.name])
+                self.street_dirs.append([element])
         pprint(self.street_dirs)
 
 
