@@ -1,61 +1,78 @@
 import os
 import sys
+from pathlib import Path
 from pprint import pprint
+
 from pypdf import PdfMerger
+from PyQt5 import uic
+from PyQt5.QtWidgets import QApplication, QFileDialog, QTreeWidgetItem, QWidget
+
+basedir = os.path.dirname(__file__)
 
 
-merger = PdfMerger()
+class MainWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi(os.path.join(basedir, "./resources/main.ui"), self)
 
-street = sys.argv[1]
-dirs = []
-for dir in os.listdir():
-    if street in dir.lower() and os.path.isdir(dir):
-        dirs.append(dir)
-print("Найдены улицы:")
-print(*[f"\t{dir}" for dir in dirs], sep="\n")
-print("Начать слияние? (д/н)")
-ans = input()
-if "д" not in ans:
-    print("отменено")
-    exit(0)
-print("работаем...")
+        self.btnSelectFolder.clicked.connect(self.select_folder)
 
-order = ["паспорт", "разметка", "лг"]
-order2 = [*[f"п{n}" for n in range(1, 9)], *[f"о{n}" for n in range(1, 9)]]
+    def select_folder(self):
+        dir_name = QFileDialog.getExistingDirectory(self, "Выбор папки")
+        if dir_name:
+            self.path = Path(dir_name)
+            self.treeWidget.clear()
+            self.treeWidget.setHeaderLabel(self.path.name)
+            self.load_streets(self.path, self.treeWidget)
 
-flag = False
-for dir in dirs:
-    pdf_list = []
-    os.chdir(dir)
-    for file in os.listdir():
-        if ".pdf" in file:
-            pdf_list.append(file)
-    pdf_list = sorted(pdf_list)
+    def load_streets(self, path: Path, tree: QTreeWidgetItem):
+        order1 = ["паспорт", "разметка", "лг"]
+        order2 = [*[f"п{i}" for i in range(1, 9)], *[f"о{i}" for i in range(1, 9)]]
+        
+        self.street_dirs = []
+        anchor_dir_name = None
+        anchor_dir_idx = None
+        anchor_dir_tree = None
+        for i, element in enumerate(path.iterdir()):
+            if element.is_dir():
+                # начальный случай
+                if i == 0:
+                    anchor_dir_name = element.name
+                    anchor_dir_idx = i
+                    anchor_dir_tree = QTreeWidgetItem(
+                        tree, [folder_to_root_name(element.name)]
+                    )
+                    QTreeWidgetItem(anchor_dir_tree, [element.name])
+                    self.street_dirs.append([element])
+                    continue
+                # n-ая часть улицы (очень наивно)
+                if any(
+                    # 💀
+                    x in [anchor_dir_name, anchor_dir_name[:-1], anchor_dir_name[:-2]]
+                    for x in [element.name[:-2], element.name[:-1]]
+                ):
+                    QTreeWidgetItem(anchor_dir_tree, [element.name])
+                    self.street_dirs[anchor_dir_idx].append(element)
+                # 1-ая часть улицы
+                else:
+                    anchor_dir_name = element.name
+                    anchor_dir_idx += 1
+                    anchor_dir_tree = QTreeWidgetItem(
+                        tree, [folder_to_root_name(element.name)]
+                    )
+                    QTreeWidgetItem(anchor_dir_tree, [element.name])
+                    self.street_dirs.append([element])
+        pprint(self.street_dirs)
 
-    for tag in order:
-        print(f"{dir}: {tag} ... ", end="", flush=True)
-        for pdf in pdf_list:
-            if tag in pdf:
-                merger.append(pdf)
-                flag = True
-                print("OK")
-        if not flag:
-            print("X")
-        flag = False
-    os.chdir("..")
-for dir in dirs:
-    os.chdir(dir)
-    for tag in order2:
-        for pdf in pdf_list:
-            if tag in pdf:
-                merger.append(pdf)
-                print(f"{tag} ", end="", flush=True)
-    os.chdir("..")
+
+def folder_to_root_name(s):
+    return "".join(
+        filter(lambda ch: not ch.isdigit(), " ".join(s.replace("_", " ").split()[-2:]))
+    ).strip()
 
 
-# orig_name = f"Техпаспорт ул. {'_'.join(os.getcwd().split('_')[-2:])}.pdf"
-name = "_".join(dirs[0].split("_")[-2:]).strip("\\")
-orig_name = f"Техпаспорт ул. {name}.pdf"
-merger.write(orig_name)
-print("ОК")
-merger.close()
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWidget()
+    window.show()
+    sys.exit(app.exec())
